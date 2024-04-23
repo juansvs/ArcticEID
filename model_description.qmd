@@ -1,0 +1,149 @@
+---
+title: "Model description"
+format: html
+editor: visual
+---
+
+To get a better understanding of how bacterial diseases are spreading across populations of ungulates in the Canadian Arctic, and how they may be impacting these populations, we built a series of epidemiological models. These models represent the demographics and disease transmission processes for two bacteria of interest: *Erysipelothrix rhusiopatiae* (Er) and *Brucella suis* (Bs). Er has caused mass mortality events, which have been documented since 2011. Bs in turn causes abortions, reducing mean fecundity in the population. Given low population growth rates in musk oxen in particular, reductions in fecundity could have significant detrimental impact on these populations.
+
+## Deterministic model
+
+First, we build deterministic models that use a system of ordinary differential equations (ODE). These models follow a SIR(D) structure (D for carcasses on the landscape). The models include demographic—fecundity, natural mortality—and epidemiological processes—acquisition, disease mortality. The diagram below shows a schematic representation of this model applied to *Er* in musk oxen. In this model, susceptible individuals (S) become infected with the bacterium (I) following contact with contaminated carcasses (D), or with infected individuals. Once infected, individuals can either become resistant (R), or develop a pathology and die.
+
+::: {#sirdiagram}
+![Representation of the basic SIRD model for epidemiology of *Erysipelothrix rhusiopatiae* in musk oxen](images/SIR_diagram.png){width="400"}
+:::
+
+The model is represented by the following ODE system:
+
+$$
+\begin{align}
+\frac{dS}{dt}&=\phi(S+I+R)-\mu_N S-\beta S(D+I)+\lambda R\\
+\frac{dI}{dt}&=-\mu_N I +\beta S(D+I)-\theta\mu_I I -(1-\theta)\rho I\\
+\frac{dR}{dt}&=-\mu_N R+(1-\theta)\rho I-\lambda R\\
+\frac{dD}{dt}&=\theta\mu_I I-\delta D
+\end{align}
+$$
+
+Parameters are as follows:
+
+| Parameter | Description                                                                                                | Value  | Units                 |
+|----------|----------------------------------------------|--------|--------|
+| $\phi$    | *Per capita* fecundity rate. Assumed at first to be equal regardless of disease                            | 0.5    | 1/year                |
+| $\mu_N$   | *Per capita* natural mortality rate                                                                        | 1/12   | 1/year                |
+| $\beta$   | Bacteria transmission rate. Calculated as a search efficiency rate that scales the number of encounters    | 5      | km\^2/individual year |
+| $\theta$  | Proportion of infected individuals that develop a pathology and die                                        | 0.8    | Unitless              |
+| $\mu_I$   | *Per capita* disease-induced mortality rate                                                                | 365/5  | 1/year                |
+| $\rho$    | *Per capita* rate of recovery from infection. This is the rate at which infected individuals become immune | 365/15 | 1/year                |
+| $\lambda$ | *Per capita* rate of loss of immunity                                                                      | 1      | 1/year                |
+| $\delta$  | *Per capita* rate of disappearance of carcasses (or environmental bacteria sources)                        | 1/2    | 1/year                |
+
+: Description of parameters in the Er-musk ox compartmental epidemiological model
+
+```{r, echo=FALSE,fig.asp=3/4, fig.cap="Epidemiological model of E.rhus. in musk oxen"}
+
+source("code/basic_ode_models.R")
+library(deSolve)
+# Parameters. Rates are per year
+pars <- c(
+  phi = 0.72, # fecundity of healthy individuals
+  sigma = 1, # proportion of fecundity of disease individuals, relative to healthy ones
+  lambda = 1, # loss of immunity in one year
+  beta = 5, # transmission. wild guess at this point. Units are km^2/ind/yr
+  mu_N = 1/12, # based on 15 year lifespan (12-20 yr)
+  mu_I = 365/5, # disease-induced mortality rate
+  theta = 0.8, # proportion of individuals that develop a pathology and die
+  rho = 365/15, # rate of recovery
+  delta = 1/2 # carcass disappearance rate
+)
+
+# State variables, densities of individuals per km^-2
+state <- c(
+  S = 0.3,
+  I = 0.01,
+  R = 0,
+  D = 0
+)
+
+# get the solution up to 20 years, with weekly resolution
+times <- seq(0,20,by = 1/52)
+
+# solve numerically
+out <- ode(y = state, times = times, func = ode1, parms = pars)
+
+# plot
+matplot.deSolve(out, 
+                main="", ylab = expression(paste("Density (",km^-2,")")), xlab = "Time (years)", lty = 1, 
+                col = hcl.colors(4),cex.lab=1.5)
+```
+
+### Maternal immunity
+
+There is some evidence that antibodies can be transferred to newborns. We can include this in the model by having the resistant compartment increase through births, rather than resistant individuals contributing to .
+
+![](images/SIR_diagram_matimmun.png){width="350"}
+
+\begin{align}
+\frac{dS}{dt}&=\phi(S+I)-\mu_N S-\beta S(D+I)+\lambda R\\
+\frac{dI}{dt}&=-\mu_N I +\beta S(D+I)-\theta\mu_I I -(1-\theta)\rho I\\
+\frac{dR}{dt}&=\phi R-\mu_N R+(1-\theta)\rho I-\lambda R\\
+\frac{dD}{dt}&=\theta\mu_I I-\delta D
+\end{align}
+
+```{r, echo=FALSE,fig.asp=3/4, fig.cap="Epidemiological model of E.rhus. in musk oxen including maternal transference of immunity"}
+# solve numerically
+out <- ode(y = state, times = times, func = odeMI, parms = pars)
+
+# plot
+matplot.deSolve(out, 
+                main="", ylab = expression(paste("Density (",km^-2,")")), xlab = "Time (years)", lty = 1, 
+                col = hcl.colors(4),cex.lab=1.5)
+```
+
+Including maternal immunity does not have a large impact on the overall predictions from the model. You still see a large reduction in population size, and a slow recovery followed by a new crash as the density of susceptible individuals increases again.
+
+### Stage structure
+
+To better capture the long-term effects of disease on the population, we can further divide the compartments by stages, so that juveniles cannot reproduce, but can become infected and die. This model also allows to include maternally transferred immunity. The diagram below represents this model. The equations now include a development term $\gamma$ that represents the rate of transition from juvenile to adult. Assuming first reproduction at 3 years of age, the rate of transition is given by $\gamma=1/(1+\mu_J)^3$, where $\mu_J$ is the yearly mortality rate of juveniles (30%?).
+
+![Epidemiological model with stage structure and maternal immunity transference](images/SIR_diagram_stages_matimmun.png){width="350"}
+
+The new system of ODE is the following:
+
+\begin{align}
+\frac{dS_J}{dt}&=\phi(S_A+I_A)-\gamma S_J-\mu_{J} S_J-\beta S_J(D+I_J+I_A)+\lambda R_J\\
+\frac{dI_J}{dt}&=-\mu_{J} I_J-\gamma I_J +\beta S_J(D+I_J+I_A)-\theta\mu_I I_J -(1-\theta)\rho I_J\\
+\frac{dR_J}{dt}&=\phi R_A-\mu_{J} R_J+(1-\theta)\rho I_J-\lambda R_J\\
+\frac{dS_A}{dt}&=\gamma S_J-\mu_{N} S_A-\beta S_A(D+I_J+I_A)+\lambda R_A\\
+\frac{dI_A}{dt}&=\gamma I_J-\mu_{N} I_A+\beta S_A(D+I_J+I_A)-\theta \mu_I I_A-(1-\theta)\rho I_A\\
+\frac{dR_A}{dt}&=\gamma R_J-\mu_{N} R_A+(1-\theta)\rho I_A-\lambda R_A\\
+\frac{dD}{dt}&=\theta\mu_I (I_A+I_J)-\delta D\\
+\end{align}
+
+```{r, echo=FALSE,fig.asp=3/4, fig.cap="Stage-structured epidemiological model of E.rhus. in musk oxen"}
+pars_ss <- c(
+  phi = 0.72, # fecundity of healthy individuals
+  sigma = 1, # proportion of fecundity of disease individuals, relative to healthy ones
+  lambda = 1, # loss of immunity in one year
+  beta = 5, # transmission. wild guess at this point. Units are km^2/ind/yr
+  mu_J = 0.3, # juvenile mortality rate
+  mu_N = 1/12, # based on 15 year lifespan (12-20 yr)
+  mu_I = 365/5, # disease-induced mortality rate
+  theta = 0.8, # proportion of individuals that develop a pathology and die
+  rho = 365/15, # rate of recovery
+  delta = 1/2, # carcass disappearance rate
+  gama = 1/1.3^3# development rate. Calculated as 
+)
+# solve numerically
+out <- ode(y = c(Sj = 0.3*0.17, Ij = 0, Rj = 0,
+                 Sa = 0.3*0.83, Ia = 0.01, Ra = 0,
+                 D = 0), 
+           times = times, func = odeSSMI, parms = pars_ss)
+
+# plot
+matplot.deSolve(out, 
+                main="", ylab = expression(paste("Density (",km^-2,")")), xlab = "Time (years)", lty = 1, 
+                col = hcl.colors(7),cex.lab=1.5)
+```
+
+Including stage structure delays the recovery of the population. This makes sense given that we are including juvenile mortality, which reduces the growth rate of the population.
