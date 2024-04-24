@@ -48,12 +48,12 @@ odeMI <- function(t, state, parameters) {
 
 odeSSMI <- function(t, state, parameters) {
   with(as.list(c(state, parameters)), {
-    dSj <- phi*(Sa+Ia)+sigma*phi*Ia-gama*Sj-mu_J*Sj-beta*Sj*(Ij+Ia+D)+lambda*Rj
-    dIj <- -mu_J*Ij-gama*Ij+beta*Sj*(Ij+Ia+D)-theta*mu_I*Ij-(1-theta)*rho*Ij
-    dRj <- phi*Ra-gama*Rj-mu_J*Rj+(1-theta)*rho*Ij-lambda*Rj
-    dSa <- gama*Sj-mu_N*Sa-beta*Sa*(Ij+Ia+D)+lambda*Ra
-    dIa <- gama*Ij-mu_N*Ia+beta*Sa*(Ij+Ia+D)-theta*mu_I*Ia-(1-theta)*rho*Ia
-    dRa <- gama*Rj-mu_N*Ra+(1-theta)*rho*Ia-lambda*Ra
+    dSj <- phi*(Sa+Ia)+sigma*phi*Ia-gama^3*Sj-mu_J*(1+gama+gama^2)*Sj-beta*Sj*(Ij+Ia+D)+lambda*Rj
+    dIj <- -mu_J*(1+gama+gama^2)*Ij-gama^3*Ij+beta*Sj*(Ij+Ia+D)-theta*mu_I*Ij-(1-theta)*rho*Ij
+    dRj <- phi*Ra-gama^3*Rj-mu_J*(1+gama+gama^2)*Rj+(1-theta)*rho*Ij-lambda*Rj
+    dSa <- gama^3*Sj-mu_N*Sa-beta*Sa*(Ij+Ia+D)+lambda*Ra
+    dIa <- gama^3*Ij-mu_N*Ia+beta*Sa*(Ij+Ia+D)-theta*mu_I*Ia-(1-theta)*rho*Ia
+    dRa <- gama^3*Rj-mu_N*Ra+(1-theta)*rho*Ia-lambda*Ra
     dD <- theta*mu_I*(Ij+Ia)-delta*D
     
     list(c(dSj,dIj,dRj,dSa,dIa,dRa,dD))
