@@ -87,10 +87,10 @@ ul.task-list li input[type="checkbox"] {
 <table class="table">
 <caption>Description of parameters in the Er-musk ox compartmental epidemiological model</caption>
 <colgroup>
-<col style="width: 13%">
-<col style="width: 63%">
-<col style="width: 11%">
-<col style="width: 11%">
+<col style="width: 16%">
+<col style="width: 51%">
+<col style="width: 16%">
+<col style="width: 16%">
 </colgroup>
 <thead>
 <tr class="header">
@@ -104,7 +104,7 @@ ul.task-list li input[type="checkbox"] {
 <tr class="odd">
 <td><span class="math inline">\(\phi\)</span></td>
 <td><em>Per capita</em> fecundity rate. Assumed at first to be equal regardless of disease</td>
-<td>0.5</td>
+<td>0.61</td>
 <td>1/year</td>
 </tr>
 <tr class="even">
@@ -165,12 +165,12 @@ ul.task-list li input[type="checkbox"] {
 <h3 class="anchored" data-anchor-id="maternal-immunity">Maternal immunity</h3>
 <p>There is some evidence that antibodies can be transferred to newborns. We can include this in the model by having the resistant compartment increase through births, rather than resistant individuals contributing to .</p>
 <p><img src="images/SIR_diagram_matimmun.png" class="img-fluid" width="350"></p>
-<p><span class="math display">\[\begin{align}
+<span class="math display">\[\begin{align}
 \frac{dS}{dt}&amp;=\phi(S+I)-\mu_N S-\beta S(D+I)+\lambda R\\
 \frac{dI}{dt}&amp;=-\mu_N I +\beta S(D+I)-\theta\mu_I I -(1-\theta)\rho I\\
 \frac{dR}{dt}&amp;=\phi R-\mu_N R+(1-\theta)\rho I-\lambda R\\
 \frac{dD}{dt}&amp;=\theta\mu_I I-\delta D
-\end{align}\]</span></p>
+\end{align}\]</span>
 <div class="cell" data-fig.asp="0.75">
 <div class="cell-output-display">
 <div class="quarto-figure quarto-figure-center">
@@ -181,11 +181,11 @@ ul.task-list li input[type="checkbox"] {
 </div>
 </div>
 </div>
-<p>Including maternal immunity does not have a large impact on the overall predictions from the model. You still see a large reduction in population size, and a slow recovery followed by a new crash as the density of susceptible individuals increases again.</p>
+<p>Including maternal immunity has somewhat of an impact on the overall predictions from the model. The greatest effect seems to be to limit the reduction of the population somewhat, dampening the oscillations more quickly, and delaying the onset of the new outbreak. You still see a large reduction in population size, and a slow recovery followed by a new crash as the density of susceptible individuals increases again.</p>
 </section>
 <section id="stage-structure" class="level3">
 <h3 class="anchored" data-anchor-id="stage-structure">Stage structure</h3>
-<p>To better capture the long-term effects of disease on the population, we can further divide the compartments by stages, so that juveniles cannot reproduce, but can become infected and die. This model also allows to include maternally transferred immunity. The diagram below represents this model. The equations now include a development term <span class="math inline">\(\gamma\)</span> that represents the rate of transition from juvenile to adult. Assuming first reproduction at 3 years of age, the rate of transition is given by <span class="math inline">\(\gamma=1/(1+\mu_J)^3\)</span>, where <span class="math inline">\(\mu_J\)</span> is the yearly mortality rate of juveniles (30%?).</p>
+<p>To better capture the long-term effects of disease on the population, we can further divide the compartments by stages, so that juveniles cannot reproduce, but can become infected and die. This model also includes maternally transferred immunity. The equations now include a development term <span class="math inline">\(\gamma\)</span> that represents the rate of transition from juvenile to adult. We assume first reproduction at 3 years of age.</p>
 <div class="quarto-figure quarto-figure-center">
 <figure class="figure">
 <p><img src="images/SIR_diagram_stages_matimmun.png" class="img-fluid figure-img" width="350"></p>
@@ -193,15 +193,15 @@ ul.task-list li input[type="checkbox"] {
 </figure>
 </div>
 <p>The new system of ODE is the following:</p>
-<p><span class="math display">\[\begin{align}
-\frac{dS_J}{dt}&amp;=\phi(S_A+I_A)-\gamma S_J-\mu_{J} S_J-\beta S_J(D+I_J+I_A)+\lambda R_J\\
-\frac{dI_J}{dt}&amp;=-\mu_{J} I_J-\gamma I_J +\beta S_J(D+I_J+I_A)-\theta\mu_I I_J -(1-\theta)\rho I_J\\
-\frac{dR_J}{dt}&amp;=\phi R_A-\mu_{J} R_J+(1-\theta)\rho I_J-\lambda R_J\\
-\frac{dS_A}{dt}&amp;=\gamma S_J-\mu_{N} S_A-\beta S_A(D+I_J+I_A)+\lambda R_A\\
-\frac{dI_A}{dt}&amp;=\gamma I_J-\mu_{N} I_A+\beta S_A(D+I_J+I_A)-\theta \mu_I I_A-(1-\theta)\rho I_A\\
-\frac{dR_A}{dt}&amp;=\gamma R_J-\mu_{N} R_A+(1-\theta)\rho I_A-\lambda R_A\\
+<span class="math display">\[\begin{align}
+\frac{dS_J}{dt}&amp;=\phi(S_A+I_A)-\mu_{J}(1+\gamma+\gamma^2) S_J-\gamma^3 S_J-\beta S_J(D+I_J+I_A)+\lambda R_J\\
+\frac{dI_J}{dt}&amp;=-\mu_{J}(1+\gamma+\gamma^2) I_J-\gamma^3 I_J +\beta S_J(D+I_J+I_A)-\theta\mu_I I_J -(1-\theta)\rho I_J\\
+\frac{dR_J}{dt}&amp;=\phi R_A-\mu_{J}(1+\gamma+\gamma^2) R_J-\gamma^3 R_J+(1-\theta)\rho I_J-\lambda R_J\\
+\frac{dS_A}{dt}&amp;=\gamma^3 S_J-\mu_{N} S_A-\beta S_A(D+I_J+I_A)+\lambda R_A\\
+\frac{dI_A}{dt}&amp;=\gamma^3 I_J-\mu_{N} I_A+\beta S_A(D+I_J+I_A)-\theta \mu_I I_A-(1-\theta)\rho I_A\\
+\frac{dR_A}{dt}&amp;=\gamma^3 R_J-\mu_{N} R_A+(1-\theta)\rho I_A-\lambda R_A\\
 \frac{dD}{dt}&amp;=\theta\mu_I (I_A+I_J)-\delta D\\
-\end{align}\]</span></p>
+\end{align}\]</span>
 <div class="cell" data-fig.asp="0.75">
 <div class="cell-output-display">
 <div class="quarto-figure quarto-figure-center">
@@ -212,8 +212,21 @@ ul.task-list li input[type="checkbox"] {
 </div>
 </div>
 </div>
-<p>Including stage structure delays the recovery of the population. This makes sense given that we are including juvenile mortality, which reduces the growth rate of the population.</p>
+<p>Including stage structure delays recovery. This makes sense given that we are including juvenile mortality, both natural and disease-induced, which reduces the growth rate of the population.</p>
 </section>
+</section>
+<section id="model-equilibria" class="level2">
+<h2 class="anchored" data-anchor-id="model-equilibria">Model equilibria</h2>
+<p>For the first model, the non-trivial equilibrium satisfies:</p>
+<p><span class="math display">\[
+\begin{align}
+\hat{D}=\frac{\theta  \mu_I (\rho -\theta  \rho ) (\lambda +\mu_N) (\mu_N-\phi ) (-\theta  (\mu_I+\rho )-\rho +\mu_N)}{\beta  (1-\theta ) \rho  ((\rho -\theta  \rho ) (\lambda +\phi ) (\delta +\theta  \mu_I)+\phi  (\rho -\theta  \rho ) (\lambda +\mu_N) (\delta +\theta  \mu_I)+(\lambda +\mu_N) (\delta -\theta  \mu_I) (\theta  (\mu_I-\rho )+\rho +\mu_N))}\\
+\hat{I} =\frac{\delta  (\rho -\theta  \rho ) (\lambda +\mu_N) (\mu_N-\phi ) (-\theta  (\mu_I+\rho )-\rho +\mu_N)}{\beta  (1-\theta ) \rho  ((\rho -\theta  \rho ) (\lambda +\phi ) (\delta +\theta  \mu_I)+\phi  (\rho -\theta  \rho ) (\lambda +\mu_N) (\delta +\theta  \mu_I)+(\lambda +\mu_N) (\delta -\theta  \mu_I) (\theta  (\mu_I-\rho )+\rho +\mu_N))}\\
+\hat{S}=\frac{\delta(\mu_N-\theta\mu_I-\rho+\rho\theta)}{\beta(\delta+\theta\mu_I)}\\
+\hat{R}=\frac{\delta(\mu_N-\theta\mu_I-\rho+\rho\theta)(\mu_N-\phi)(\rho-\rho\theta)}{\beta[(-\mu_N-\theta\mu_I-\rho+\rho\theta)(\mu_N+\lambda)(\theta\mu_I-\delta)+(\rho-\rho\theta)(\delta+\theta\mu_I)(\phi+\lambda)+(\rho-\rho\theta)(\delta+\mu_I\theta)(\mu_N+\lambda)\phi]}
+\end{align}
+\]</span></p>
+<p>While it may be unrealistic to expect the system to reach equilibrium any time soon, we can use the model to infer the expected density of individuals who are temporarily immune, <em>i.e.</em> who had the disease and recovered. This would be represented by seropositive alive individuals. Based on the equilibria formula, the density is given by</p>
 </section>
 
 </main>

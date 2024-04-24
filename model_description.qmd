@@ -28,8 +28,8 @@ $$
 Parameters are as follows:
 
 | Parameter | Description                                                                                                | Value  | Units                 |
-|----------|----------------------------------------------|--------|--------|
-| $\phi$    | *Per capita* fecundity rate. Assumed at first to be equal regardless of disease                            | 0.5    | 1/year                |
+|------------|--------------------------------------|------------|------------|
+| $\phi$    | *Per capita* fecundity rate. Assumed at first to be equal regardless of disease                            | 0.61   | 1/year                |
 | $\mu_N$   | *Per capita* natural mortality rate                                                                        | 1/12   | 1/year                |
 | $\beta$   | Bacteria transmission rate. Calculated as a search efficiency rate that scales the number of encounters    | 5      | km\^2/individual year |
 | $\theta$  | Proportion of infected individuals that develop a pathology and die                                        | 0.8    | Unitless              |
@@ -46,7 +46,7 @@ source("code/basic_ode_models.R")
 library(deSolve)
 # Parameters. Rates are per year
 pars <- c(
-  phi = 0.72, # fecundity of healthy individuals
+  phi = 0.61, # fecundity of healthy individuals
   sigma = 1, # proportion of fecundity of disease individuals, relative to healthy ones
   lambda = 1, # loss of immunity in one year
   beta = 5, # transmission. wild guess at this point. Units are km^2/ind/yr
@@ -83,13 +83,14 @@ There is some evidence that antibodies can be transferred to newborns. We can in
 
 ![](images/SIR_diagram_matimmun.png){width="350"}
 
+```{=tex}
 \begin{align}
 \frac{dS}{dt}&=\phi(S+I)-\mu_N S-\beta S(D+I)+\lambda R\\
 \frac{dI}{dt}&=-\mu_N I +\beta S(D+I)-\theta\mu_I I -(1-\theta)\rho I\\
 \frac{dR}{dt}&=\phi R-\mu_N R+(1-\theta)\rho I-\lambda R\\
 \frac{dD}{dt}&=\theta\mu_I I-\delta D
 \end{align}
-
+```
 ```{r, echo=FALSE,fig.asp=3/4, fig.cap="Epidemiological model of E.rhus. in musk oxen including maternal transference of immunity"}
 # solve numerically
 out <- ode(y = state, times = times, func = odeMI, parms = pars)
@@ -100,39 +101,40 @@ matplot.deSolve(out,
                 col = hcl.colors(4),cex.lab=1.5)
 ```
 
-Including maternal immunity does not have a large impact on the overall predictions from the model. You still see a large reduction in population size, and a slow recovery followed by a new crash as the density of susceptible individuals increases again.
+Including maternal immunity has somewhat of an impact on the overall predictions from the model. The greatest effect seems to be to limit the reduction of the population somewhat, dampening the oscillations more quickly, and delaying the onset of the new outbreak. You still see a large reduction in population size, and a slow recovery followed by a new crash as the density of susceptible individuals increases again.
 
 ### Stage structure
 
-To better capture the long-term effects of disease on the population, we can further divide the compartments by stages, so that juveniles cannot reproduce, but can become infected and die. This model also allows to include maternally transferred immunity. The diagram below represents this model. The equations now include a development term $\gamma$ that represents the rate of transition from juvenile to adult. Assuming first reproduction at 3 years of age, the rate of transition is given by $\gamma=1/(1+\mu_J)^3$, where $\mu_J$ is the yearly mortality rate of juveniles (30%?).
+To better capture the long-term effects of disease on the population, we can further divide the compartments by stages, so that juveniles cannot reproduce, but can become infected and die. This model also includes maternally transferred immunity. The equations now include a development term $\gamma$ that represents the rate of transition from juvenile to adult. We assume first reproduction at 3 years of age.
 
 ![Epidemiological model with stage structure and maternal immunity transference](images/SIR_diagram_stages_matimmun.png){width="350"}
 
 The new system of ODE is the following:
 
+```{=tex}
 \begin{align}
-\frac{dS_J}{dt}&=\phi(S_A+I_A)-\gamma S_J-\mu_{J} S_J-\beta S_J(D+I_J+I_A)+\lambda R_J\\
-\frac{dI_J}{dt}&=-\mu_{J} I_J-\gamma I_J +\beta S_J(D+I_J+I_A)-\theta\mu_I I_J -(1-\theta)\rho I_J\\
-\frac{dR_J}{dt}&=\phi R_A-\mu_{J} R_J+(1-\theta)\rho I_J-\lambda R_J\\
-\frac{dS_A}{dt}&=\gamma S_J-\mu_{N} S_A-\beta S_A(D+I_J+I_A)+\lambda R_A\\
-\frac{dI_A}{dt}&=\gamma I_J-\mu_{N} I_A+\beta S_A(D+I_J+I_A)-\theta \mu_I I_A-(1-\theta)\rho I_A\\
-\frac{dR_A}{dt}&=\gamma R_J-\mu_{N} R_A+(1-\theta)\rho I_A-\lambda R_A\\
+\frac{dS_J}{dt}&=\phi(S_A+I_A)-\mu_{J}(1+\gamma+\gamma^2) S_J-\gamma^3 S_J-\beta S_J(D+I_J+I_A)+\lambda R_J\\
+\frac{dI_J}{dt}&=-\mu_{J}(1+\gamma+\gamma^2) I_J-\gamma^3 I_J +\beta S_J(D+I_J+I_A)-\theta\mu_I I_J -(1-\theta)\rho I_J\\
+\frac{dR_J}{dt}&=\phi R_A-\mu_{J}(1+\gamma+\gamma^2) R_J-\gamma^3 R_J+(1-\theta)\rho I_J-\lambda R_J\\
+\frac{dS_A}{dt}&=\gamma^3 S_J-\mu_{N} S_A-\beta S_A(D+I_J+I_A)+\lambda R_A\\
+\frac{dI_A}{dt}&=\gamma^3 I_J-\mu_{N} I_A+\beta S_A(D+I_J+I_A)-\theta \mu_I I_A-(1-\theta)\rho I_A\\
+\frac{dR_A}{dt}&=\gamma^3 R_J-\mu_{N} R_A+(1-\theta)\rho I_A-\lambda R_A\\
 \frac{dD}{dt}&=\theta\mu_I (I_A+I_J)-\delta D\\
 \end{align}
-
-```{r, echo=FALSE,fig.asp=3/4, fig.cap="Stage-structured epidemiological model of E.rhus. in musk oxen"}
+```
+```{r,echo=FALSE,fig.asp=3/4, fig.cap="Stage-structured epidemiological model of E.rhus. in musk oxen"}
 pars_ss <- c(
-  phi = 0.72, # fecundity of healthy individuals
+  phi = 0.61, # fecundity of healthy individuals
   sigma = 1, # proportion of fecundity of disease individuals, relative to healthy ones
-  lambda = 1, # loss of immunity in one year
+  lambda = 1, # loss of immunity per year
   beta = 5, # transmission. wild guess at this point. Units are km^2/ind/yr
   mu_J = 0.3, # juvenile mortality rate
-  mu_N = 1/12, # based on 15 year lifespan (12-20 yr)
+  mu_N = 1/12, # adult mortality, based on 15 year lifespan (12-20 yr)
   mu_I = 365/5, # disease-induced mortality rate
   theta = 0.8, # proportion of individuals that develop a pathology and die
   rho = 365/15, # rate of recovery
   delta = 1/2, # carcass disappearance rate
-  gama = 1/1.3^3# development rate. Calculated as 
+  gama = 1 # development rate 
 )
 # solve numerically
 out <- ode(y = c(Sj = 0.3*0.17, Ij = 0, Rj = 0,
@@ -146,4 +148,19 @@ matplot.deSolve(out,
                 col = hcl.colors(7),cex.lab=1.5)
 ```
 
-Including stage structure delays the recovery of the population. This makes sense given that we are including juvenile mortality, which reduces the growth rate of the population.
+Including stage structure delays recovery. This makes sense given that we are including juvenile mortality, both natural and disease-induced, which reduces the growth rate of the population.
+
+## Model equilibria
+
+For the first model, the non-trivial equilibrium satisfies:
+
+$$
+\begin{align}
+\hat{D}=\frac{\theta  \mu_I (\rho -\theta  \rho ) (\lambda +\mu_N) (\mu_N-\phi ) (-\theta  (\mu_I+\rho )-\rho +\mu_N)}{\beta  (1-\theta ) \rho  ((\rho -\theta  \rho ) (\lambda +\phi ) (\delta +\theta  \mu_I)+\phi  (\rho -\theta  \rho ) (\lambda +\mu_N) (\delta +\theta  \mu_I)+(\lambda +\mu_N) (\delta -\theta  \mu_I) (\theta  (\mu_I-\rho )+\rho +\mu_N))}\\
+\hat{I} =\frac{\delta  (\rho -\theta  \rho ) (\lambda +\mu_N) (\mu_N-\phi ) (-\theta  (\mu_I+\rho )-\rho +\mu_N)}{\beta  (1-\theta ) \rho  ((\rho -\theta  \rho ) (\lambda +\phi ) (\delta +\theta  \mu_I)+\phi  (\rho -\theta  \rho ) (\lambda +\mu_N) (\delta +\theta  \mu_I)+(\lambda +\mu_N) (\delta -\theta  \mu_I) (\theta  (\mu_I-\rho )+\rho +\mu_N))}\\
+\hat{S}=\frac{\delta(\mu_N-\theta\mu_I-\rho+\rho\theta)}{\beta(\delta+\theta\mu_I)}\\
+\hat{R}=\frac{\delta(\mu_N-\theta\mu_I-\rho+\rho\theta)(\mu_N-\phi)(\rho-\rho\theta)}{\beta[(-\mu_N-\theta\mu_I-\rho+\rho\theta)(\mu_N+\lambda)(\theta\mu_I-\delta)+(\rho-\rho\theta)(\delta+\theta\mu_I)(\phi+\lambda)+(\rho-\rho\theta)(\delta+\mu_I\theta)(\mu_N+\lambda)\phi]}
+\end{align}
+$$
+
+While it may be unrealistic to expect the system to reach equilibrium any time soon, we can use the model to infer the expected density of individuals who are temporarily immune, *i.e.* who had the disease and recovered. This would be represented by seropositive alive individuals. Based on the equilibria formula, the density is given by
