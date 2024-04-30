@@ -59,4 +59,22 @@ odeSSMI <- function(t, state, parameters) {
     list(c(dSj,dIj,dRj,dSa,dIa,dRa,dD))
   })
 }
+
+# Model with stage structure and seasonality
+odeseas <- function(t, state, parameters) {
+  with(as.list(c(state, parameters)), {
+    mon <- floor(12*(t-floor(t)))
+    issummer <- mon %in% 5:8
+    betafun <- beta*1/3*(issummer) # scale beta seasonally, it is halved outside of May-August
+    dSj <- phi*(Sa+Ia)+sigma*phi*Ia-gama^3*Sj-mu_J*(1+gama+gama^2)*Sj-betafun*Sj*(Ij+Ia+D)+lambda*Rj
+    dIj <- -mu_J*(1+gama+gama^2)*Ij-gama^3*Ij+betafun*Sj*(Ij+Ia+D)-theta*mu_I*Ij-(1-theta)*rho*Ij
+    dRj <- phi*Ra-gama^3*Rj-mu_J*(1+gama+gama^2)*Rj+(1-theta)*rho*Ij-lambda*Rj
+    dSa <- gama^3*Sj-mu_N*Sa-betafun*Sa*(Ij+Ia+D)+lambda*Ra
+    dIa <- gama^3*Ij-mu_N*Ia+betafun*Sa*(Ij+Ia+D)-theta*mu_I*Ia-(1-theta)*rho*Ia
+    dRa <- gama^3*Rj-mu_N*Ra+(1-theta)*rho*Ia-lambda*Ra
+    dD <- theta*mu_I*(Ij+Ia)-delta*D
+    
+    list(c(dSj,dIj,dRj,dSa,dIa,dRa,dD))
+  })
+}
                 

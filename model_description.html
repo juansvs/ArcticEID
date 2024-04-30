@@ -20,7 +20,60 @@ ul.task-list li input[type="checkbox"] {
   margin: 0 0.8em 0.2em -1em; /* quarto-specific, see https://github.com/quarto-dev/quarto-cli/issues/4556 */ 
   vertical-align: middle;
 }
-</style>
+/* CSS for syntax highlighting */
+pre > code.sourceCode { white-space: pre; position: relative; }
+pre > code.sourceCode > span { display: inline-block; line-height: 1.25; }
+pre > code.sourceCode > span:empty { height: 1.2em; }
+.sourceCode { overflow: visible; }
+code.sourceCode > span { color: inherit; text-decoration: inherit; }
+div.sourceCode { margin: 1em 0; }
+pre.sourceCode { margin: 0; }
+@media screen {
+div.sourceCode { overflow: auto; }
+}
+@media print {
+pre > code.sourceCode { white-space: pre-wrap; }
+pre > code.sourceCode > span { text-indent: -5em; padding-left: 5em; }
+}
+pre.numberSource code
+  { counter-reset: source-line 0; }
+pre.numberSource code > span
+  { position: relative; left: -4em; counter-increment: source-line; }
+pre.numberSource code > span > a:first-child::before
+  { content: counter(source-line);
+    position: relative; left: -1em; text-align: right; vertical-align: baseline;
+    border: none; display: inline-block;
+    -webkit-touch-callout: none; -webkit-user-select: none;
+    -khtml-user-select: none; -moz-user-select: none;
+    -ms-user-select: none; user-select: none;
+    padding: 0 4px; width: 4em;
+  }
+pre.numberSource { margin-left: 3em;  padding-left: 4px; }
+div.sourceCode
+  {   }
+@media screen {
+pre > code.sourceCode > span > a:first-child::before { text-decoration: underline; }
+}
+/* CSS for citations */
+div.csl-bib-body { }
+div.csl-entry {
+  clear: both;
+}
+.hanging-indent div.csl-entry {
+  margin-left:2em;
+  text-indent:-2em;
+}
+div.csl-left-margin {
+  min-width:2em;
+  float:left;
+}
+div.csl-right-inline {
+  margin-left:2em;
+  padding-left:1em;
+}
+div.csl-indent {
+  margin-left: 2em;
+}</style>
 
 
 <script src="model_description_files/libs/clipboard/clipboard.min.js"></script>
@@ -87,10 +140,10 @@ ul.task-list li input[type="checkbox"] {
 <table class="table">
 <caption>Description of parameters in the Er-musk ox compartmental epidemiological model</caption>
 <colgroup>
-<col style="width: 16%">
-<col style="width: 51%">
-<col style="width: 16%">
-<col style="width: 16%">
+<col style="width: 19%">
+<col style="width: 42%">
+<col style="width: 19%">
+<col style="width: 19%">
 </colgroup>
 <thead>
 <tr class="header">
@@ -214,9 +267,39 @@ ul.task-list li input[type="checkbox"] {
 </div>
 <p>Including stage structure delays recovery. This makes sense given that we are including juvenile mortality, both natural and disease-induced, which reduces the growth rate of the population.</p>
 </section>
-</section>
-<section id="model-equilibria" class="level2">
-<h2 class="anchored" data-anchor-id="model-equilibria">Model equilibria</h2>
+<section id="seasonality" class="level3">
+<h3 class="anchored" data-anchor-id="seasonality">Seasonality</h3>
+<p>There is evidence that seroprevalence is higher during the summer months in caribou (<span class="citation" data-cites="aleuy2022">(<a href="#ref-aleuy2022" role="doc-biblioref">Aleuy et al. 2022</a>)</span>), so we need to account for this, so that transmission does not occur continuously. To do this, I set transmission to be a function rather than a constant value (It might make sense to just make the model discrete, which will help with turning it into a stochastic IBM later on)</p>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb1"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb1-1"><a href="#cb1-1" aria-hidden="true" tabindex="-1"></a>pars_ss <span class="ot">&lt;-</span> <span class="fu">c</span>(</span>
+<span id="cb1-2"><a href="#cb1-2" aria-hidden="true" tabindex="-1"></a>  <span class="at">phi =</span> <span class="fl">0.61</span>, <span class="co"># fecundity of healthy individuals</span></span>
+<span id="cb1-3"><a href="#cb1-3" aria-hidden="true" tabindex="-1"></a>  <span class="at">sigma =</span> <span class="dv">1</span>, <span class="co"># proportion of fecundity of disease individuals, relative to healthy ones</span></span>
+<span id="cb1-4"><a href="#cb1-4" aria-hidden="true" tabindex="-1"></a>  <span class="at">lambda =</span> <span class="dv">1</span>, <span class="co"># loss of immunity per year</span></span>
+<span id="cb1-5"><a href="#cb1-5" aria-hidden="true" tabindex="-1"></a>  <span class="at">beta =</span> <span class="dv">5</span>, <span class="co"># transmission. wild guess at this point. Units are km^2/ind/yr</span></span>
+<span id="cb1-6"><a href="#cb1-6" aria-hidden="true" tabindex="-1"></a>  <span class="at">mu_J =</span> <span class="fl">0.3</span>, <span class="co"># juvenile mortality rate</span></span>
+<span id="cb1-7"><a href="#cb1-7" aria-hidden="true" tabindex="-1"></a>  <span class="at">mu_N =</span> <span class="dv">1</span><span class="sc">/</span><span class="dv">12</span>, <span class="co"># adult mortality, based on 15 year lifespan (12-20 yr)</span></span>
+<span id="cb1-8"><a href="#cb1-8" aria-hidden="true" tabindex="-1"></a>  <span class="at">mu_I =</span> <span class="dv">365</span><span class="sc">/</span><span class="dv">5</span>, <span class="co"># disease-induced mortality rate</span></span>
+<span id="cb1-9"><a href="#cb1-9" aria-hidden="true" tabindex="-1"></a>  <span class="at">theta =</span> <span class="fl">0.8</span>, <span class="co"># proportion of individuals that develop a pathology and die</span></span>
+<span id="cb1-10"><a href="#cb1-10" aria-hidden="true" tabindex="-1"></a>  <span class="at">rho =</span> <span class="dv">365</span><span class="sc">/</span><span class="dv">15</span>, <span class="co"># rate of recovery</span></span>
+<span id="cb1-11"><a href="#cb1-11" aria-hidden="true" tabindex="-1"></a>  <span class="at">delta =</span> <span class="dv">1</span><span class="sc">/</span><span class="dv">2</span>, <span class="co"># carcass disappearance rate</span></span>
+<span id="cb1-12"><a href="#cb1-12" aria-hidden="true" tabindex="-1"></a>  <span class="at">gama =</span> <span class="dv">1</span> <span class="co"># development rate </span></span>
+<span id="cb1-13"><a href="#cb1-13" aria-hidden="true" tabindex="-1"></a>)</span>
+<span id="cb1-14"><a href="#cb1-14" aria-hidden="true" tabindex="-1"></a><span class="co"># solve numerically</span></span>
+<span id="cb1-15"><a href="#cb1-15" aria-hidden="true" tabindex="-1"></a>out <span class="ot">&lt;-</span> <span class="fu">ode</span>(<span class="at">y =</span> <span class="fu">c</span>(<span class="at">Sj =</span> <span class="fl">0.3</span><span class="sc">*</span><span class="fl">0.17</span>, <span class="at">Ij =</span> <span class="dv">0</span>, <span class="at">Rj =</span> <span class="dv">0</span>,</span>
+<span id="cb1-16"><a href="#cb1-16" aria-hidden="true" tabindex="-1"></a>                 <span class="at">Sa =</span> <span class="fl">0.3</span><span class="sc">*</span><span class="fl">0.83</span>, <span class="at">Ia =</span> <span class="fl">0.01</span>, <span class="at">Ra =</span> <span class="dv">0</span>,</span>
+<span id="cb1-17"><a href="#cb1-17" aria-hidden="true" tabindex="-1"></a>                 <span class="at">D =</span> <span class="dv">0</span>), </span>
+<span id="cb1-18"><a href="#cb1-18" aria-hidden="true" tabindex="-1"></a>           <span class="at">times =</span> times, <span class="at">func =</span> odeseas, <span class="at">parms =</span> pars_ss)</span>
+<span id="cb1-19"><a href="#cb1-19" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-20"><a href="#cb1-20" aria-hidden="true" tabindex="-1"></a><span class="co"># plot</span></span>
+<span id="cb1-21"><a href="#cb1-21" aria-hidden="true" tabindex="-1"></a><span class="fu">matplot.deSolve</span>(out, </span>
+<span id="cb1-22"><a href="#cb1-22" aria-hidden="true" tabindex="-1"></a>                <span class="at">main=</span><span class="st">""</span>, <span class="at">ylab =</span> <span class="fu">expression</span>(<span class="fu">paste</span>(<span class="st">"Density ("</span>,km<span class="sc">^-</span><span class="dv">2</span>,<span class="st">")"</span>)), <span class="at">xlab =</span> <span class="st">"Time (years)"</span>, <span class="at">lty =</span> <span class="dv">1</span>, </span>
+<span id="cb1-23"><a href="#cb1-23" aria-hidden="true" tabindex="-1"></a>                <span class="at">col =</span> <span class="fu">hcl.colors</span>(<span class="dv">7</span>),<span class="at">cex.lab=</span><span class="fl">1.5</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output-display">
+<p><img src="model_description_files/figure-html/seasonal_model-1.png" class="img-fluid" width="672"></p>
+</div>
+</div>
+<section id="model-equilibria" class="level4">
+<h4 class="anchored" data-anchor-id="model-equilibria">Model equilibria</h4>
 <p>For the first model, the non-trivial equilibrium satisfies:</p>
 <p><span class="math display">\[
 \begin{align}
@@ -226,10 +309,26 @@ ul.task-list li input[type="checkbox"] {
 \hat{R}=\frac{\delta(\mu_N-\theta\mu_I-\rho+\rho\theta)(\mu_N-\phi)(\rho-\rho\theta)}{\beta[(-\mu_N-\theta\mu_I-\rho+\rho\theta)(\mu_N+\lambda)(\theta\mu_I-\delta)+(\rho-\rho\theta)(\delta+\theta\mu_I)(\phi+\lambda)+(\rho-\rho\theta)(\delta+\mu_I\theta)(\mu_N+\lambda)\phi]}
 \end{align}
 \]</span></p>
-<p>While it may be unrealistic to expect the system to reach equilibrium any time soon, we can use the model to infer the expected density of individuals who are temporarily immune, <em>i.e.</em> who had the disease and recovered. This would be represented by seropositive alive individuals. Based on the equilibria formula, the density is given by</p>
+<p>While it may be unrealistic to expect the system to reach equilibrium any time soon, we can use the model to infer the expected density of individuals who are temporarily immune, <em>i.e.</em> who had the disease and recovered. This would be represented by seropositive alive individuals.</p>
+</section>
+</section>
+</section>
+<section id="discrete-model" class="level2">
+<h2 class="anchored" data-anchor-id="discrete-model">Discrete model</h2>
+</section>
+<section id="stochastic-model" class="level2">
+<h2 class="anchored" data-anchor-id="stochastic-model">Stochastic model</h2>
+</section>
+<section id="references" class="level2 unnumbered">
+
+
 </section>
 
-</main>
+<div id="quarto-appendix" class="default"><section class="quarto-appendix-contents" role="doc-bibliography"><h2 class="anchored quarto-appendix-heading">References</h2><div id="refs" class="references csl-bib-body hanging-indent" role="list">
+<div id="ref-aleuy2022" class="csl-entry" role="listitem">
+Aleuy, O. Alejandro, Michele Anholt, Karin Orsel, Fabien Mavrot, Catherine A. Gagnon, Kimberlee Beckmen, Steeve D. Côté, et al. 2022. <span>“Association of Environmental Factors with Seasonal Intensity of <span><em>Erysipelothrix Rhusiopathiae</em></span> Seropositivity Among Arctic Caribou.”</span> <em>Emerging Infectious Diseases</em> 28 (8): 1650–58. <a href="https://doi.org/10.3201/eid2808.212144">https://doi.org/10.3201/eid2808.212144</a>.
+</div>
+</div></section></div></main>
 <!-- /main column -->
 <script id="quarto-html-after-body" type="application/javascript">
 window.document.addEventListener("DOMContentLoaded", function (event) {
