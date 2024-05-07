@@ -7,13 +7,46 @@ editor: visual
 
 In the simple SIR model with environmental transmission from carcasses, the transmission process is modelled as $\beta S D$, where $S$ is the density of susceptible individuals in the population, $D$ is the density of (infectious) carcasses on the landscape, and $\beta$ is a search parameter with units Area/individual/time. However, the group structure of musk oxen and caribou could generate heterogeneity in transmission processes. When one individual encounters a carcass, there is a high likelihood that other individuals are nearby, and that they too will come into contact with the carcass and contaminated soil around it. Thus, we cannot assume homogeneous mixing, we have to check what the transmission function would look like.
 
-We could treat the contacts as encounters between herds and carcasses, and then encounters with carcasses would follow the mean field assumption. However, each contact with a carcass would lead to a number of infections $n$ between 0 and $n_{max}$, the maximum group size. The number of encounters is then proportional to the density of herds, multiplied by the density of carcasses on the landscape. The expected value for the number of groups is the total population density divided by the mean group size. Assuming each contact between an individual $i$ in a group $g$ and a carcass is independent, the expected number of successful infections from a binomial distribution is $n\gamma$, where $n$ is the mean number of individuals in the herd, and $\gamma$ is the per-contact probability of infection. This also needs to be scaled down by the number of susceptible individuals. We have then the change in the number of susceptible individuals is:
+We could treat the contacts as encounters between herds and carcasses, and then encounters with carcasses would follow the mean field assumption. However, each contact with a carcass would lead to a number of infections $n$ between 0 and $n_{max}$, the maximum group size. The number of encounters is then proportional to the density of herds, multiplied by the density of carcasses on the landscape. The expected value for the number of groups is the total population density divided by the mean group size. Assuming each contact between an individual $i$ in a group $g$ and a carcass is independent, the expected number of successful infections from a binomial distribution is $n\gamma$, where $n$ is the mean number of individuals in the herd, and $\gamma$ is the per-contact probability of infection. This also needs to be scaled down by the number of susceptible individuals. We have then the change in the number of susceptible individuals is given by:
 
 $$
--\sigma G D\nu\phi(1-\rho)
+\beta G D\nu\phi\rho
 $$
 
-The term $\sigma H D$ represents the number of contacts between groups $G$ and dead individuals $D$. $\nu$ is the mean group size, $(1-\rho)$ gives the proportion of susceptible individuals within the group, and $\phi$ is a per-contact probability of infection.
+The term $\beta H D$ represents the number of contacts between groups $G$ and dead individuals $D$. $\nu$ is the mean group size, $\rho$ gives the proportion of susceptible individuals within the group, and $\phi$ is a per-contact probability of infection. The number of groups is given by the mean group size, while the proportion of susceptible individuals in a group can be approximated by the number of susceptible individuals in the whole population. We obtain:
+
+$$
+\beta\frac{N}{\nu}D\nu\phi\frac{S}{N}=\beta S D\phi
+$$
+
+So under these assumptions, we obtain the same expression as if we assumed that every individual were moving independently.
+
+If we do not assume the expected values beforehand, and rather write the expression as a combination of random variables we have:
+
+$$
+\frac{1}{A}\sum_{g=1}^G{\epsilon(\lambda_g)\tau(s_g,\phi)}
+$$
+
+Here we have two random variables, $\epsilon(\lambda_g)$ is the number of carcasses encountered per unit time by group $g$, and $\tau(s_g,\phi)$ is the number of infections within the group for every carcass encountered. The two processes are not necessarily independent, more carcasses encountered could imply a higher risk of infection, but here we assume that they are independent.
+
+We can modify this expression as:
+
+$$
+\frac{1}{A}\sum s_g(1-q^{\epsilon(\lambda)})
+$$
+
+Here, the number of successful infections is given by a series of Bernoulli trials for each individual. The probability of infection in each is $p$, and the probability of not becoming infected is $q$. For every individual, the probability of being infected following contact with $n$ carcasses is $1-q^n$. The number of carcasses encountered is the same for a given group $g$. It is given by a random variable $\epsilon(\lambda)$, where $\lambda=\beta D$, this is, the area searched per unit time multiplied by the density of carcasses on the landscape. The expected value of this random variable is $\lambda$, thus we obtain
+
+$$
+\begin{align}
+\frac{1}{A}\sum_g^G s_g(1-q^\lambda)&=\frac{1}{A}\sum_g^G s_g(1-q^{\beta D})\\
+&=\frac{1}{A}\left(\sum_g^G s_g-\sum s_g q^{\beta D}\right)\\
+&=S-\frac{1}{A}\sum s_g q^{\beta D}\\
+&=S-\frac{q^{\beta D}}{A}\sum s_g\\
+&=S-Sq^{\beta D}\\
+&=S(1-q^{\beta D})
+\end{align}
+$$
 
 We can conceptualize the transmission process as follows: A given group of animals covers a certain area $A_x$ over a period $\Delta t$. Depending on the density of carcasses on the landscape, and assuming carcasses are uniformly distributed, there will be a certain number of carcasses in $A_x$. Every individual in the group has the same probability of coming into contact with these. Each contact is considered independent, and each one may lead to infection. This infection process has to be integrated across individuals in a group, and furthermore across groups in the population. We have:
 
