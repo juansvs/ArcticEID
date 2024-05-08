@@ -39,19 +39,21 @@ error_incidence <- function(p_vary,
   # incidence=beta*S*I/N, we have
   # I(0) = incidence*N/(beta*S(0)) ~= incidence/beta
   S0 = params$pop
-  I0 = data_subset[[which_incidence]][1]/(params$beta)
+  I0 = S0*data_subset[[which_incidence]][1]/100
   IC = c(S = S0, I = I0, R = 0)
   # The times at which we compute the solution to compare with data
-  times = as.numeric(as.Date(incidence_data$date))
+  times = incidence_data$monthnum
   sol = ode(IC, times, RHS_KMK_SIR, params, method = method)
   # Error checking
   if (sol[dim(sol)[1],"time"] < times[length(times)]) {
     return(Inf)
   }
   # Values required to compute the error
-  incidence_from_run = sol[,"I"]/(sol[,'S']+sol[,"I"]+sol[,"R"])
+  incidence_from_run = sol[,"I"]/(sol[,"S"]+sol[,"I"]+sol[,"R"])
   # Compute the error
-  diff_values = incidence_data[[which_incidence]] - incidence_from_run
+  matchdb = sol[match(incidence_data$monthnum, sol[,"time"]),]
+  diff_values =   matchdb[,"I"]/(matchdb[,"S"]+matchdb[,"I"]+matchdb[,"R"])-incidence_data[,which_incidence]/100
+#incidence_data[[which_incidence]]/100 - incidence_from_run
   diff_values_squared = diff_values^2
   error = sum(diff_values_squared)
   return(error)
@@ -61,26 +63,20 @@ error_incidence <- function(p_vary,
 data = readr::read_csv("../data/caribou_seroprevalence.csv")
 # Show the top of the table (always useful)
 head(data)
-# It will be easier to work with days as days, so we convert dates
-data$date = lubridate::parse_date_time(data$Month,'%B')
-
-# Ah, yes, don't forget: let's flip the order of the table, as it is sorted
-# by decreasing dates
-data = data %>%  arrange(date)
 
 # Type of incidence to use (column name in the data)
 which_incidence = "Prevalence"
 
-data_subset = filter(data, Total>8)
+data_subset = group_by(data, Herd, monthnum) %>% filter(sum(Total)>8)
 
-ggplot(data_subset,aes(format(date,"%m"),Prevalence))+geom_point(aes(color=Herd))
+ggplot(data_subset,aes(monthnum,Prevalence))+geom_point(aes(color=Herd))
 
 
 params = list()
-params$gamma = 1/10   # Let's see if we can fit with this simple value
+params$gamma = 0.1   # Let's see if we can fit with this simple value
 # R0=beta/gamma, so beta=R0*gamma
 params$beta = 1
-params$pop = 0.5 # density of caribou
+params$pop = 0.2 # density of caribou
 
 ## Fit using a genetic algorithm
 GA = ga(
@@ -88,36 +84,32 @@ GA = ga(
   fitness = function(x) -error_incidence(p_vary = c(beta = x[1], gamma = x[2]),
                                          params = params,
                                          incidence_data = data_subset,
-                                         which_incidence = which_incidence,
+                                         which_incidence = "Prevalence",
                                          method = "rk4"),
   parallel = 4,
-  lower = c(1, 0.01),
-  upper = c(3, 0.1),
+  lower = c(0.5, 0.05),
+  upper = c(5, 2),
   pcrossover = 0.7,
   pmutation = 0.2,
   optim = TRUE,
   optimArgs = list(method = "CG"),
   suggestions = c(params$beta, params$gamma),
   popSize = 500,
-  maxiter = 100
+  maxiter = 150
 )
 
 params$beta = GA@solution[1]
 params$gamma = GA@solution[2]
 S0 = 0.2
-I0 = data_subset[[which_incidence]][1]/(params$beta)
+I0 = S0*data_subset[[which_incidence]][1]/100
 IC = c(S = S0, I = I0, R = 0)
-dates_num = as.numeric(as.Date(data_subset$date))
+dates_num = data_subset$monthnum
 times = seq(dates_num[1], dates_num[length(dates_num)], 0.1)
 sol <- ode(IC, times, RHS_KMK_SIR, params)
-sol_incidence = as.numeric(params$beta) * sol[,"S"] * sol[,"I"]/params$pop
-y_max = max(max(sol_incidence), max(data_subset[[which_incidence]]))
+sol_incidence =  sol[,"I"]/(sol[,"S"]+sol[,"I"]+sol[,"R"])
+y_max = max(max(sol_incidence), max(data_subset[[which_incidence]]/100))
 
 plot(sol[,"time"], sol_incidence, type = "l",
-     xlab = "Date", ylab = "Incidence",
-     xaxt = "n", lwd = 2, col = "red",
+     xlab = "Month", ylab = "Prevalence", lwd = 2, col = "red",
      ylim = c(0, y_max))
-lines(as.numeric(as.Date(data_subset$date)), data_subset[[which_incidence]],
-      type = "b")
-dates_pretty = pretty(dates_num)
-axis(1, at = dates_pretty, labels = as.Date(dates_pretty, origin="1970-01-01"))
+points(data_subset$monthnum, data_subset[[which_incidence]]/100)
