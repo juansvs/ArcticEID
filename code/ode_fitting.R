@@ -39,7 +39,7 @@ error_incidence <- function(p_vary,
   # incidence=beta*S*I/N, we have
   # I(0) = incidence*N/(beta*S(0)) ~= incidence/beta
   S0 = params$pop
-  I0 = S0*data_subset[[which_incidence]][1]/100
+  I0 = S0*data_subset[[which_incidence]][1]
   IC = c(S = S0, I = I0, R = 0)
   # The times at which we compute the solution to compare with data
   times = incidence_data$monthnum
@@ -51,8 +51,8 @@ error_incidence <- function(p_vary,
   # Compute the error
   matchdb = sol[match(incidence_data$monthnum, sol[,"time"]),]
   # calculate the difference between observed and model predicted. This
-  # difference is weighted by the inverse of the number of samples
-  diff_values =   1/incidence_data$Total*(matchdb[,"I"]/(matchdb[,"S"]+matchdb[,"I"]+matchdb[,"R"])-incidence_data[,which_incidence]/100)
+  # difference is weighted by the number of samples
+  diff_values =   matchdb[,"I"]/(matchdb[,"S"]+matchdb[,"I"]+matchdb[,"R"])-incidence_data[,which_incidence]
   diff_values_squared = diff_values^2
   error = sum(diff_values_squared)
   return(error)
@@ -66,15 +66,17 @@ head(data)
 # Type of incidence to use (column name in the data)
 which_incidence = "Prevalence"
 
-data_subset = group_by(data, Herd, monthnum) %>% filter(sum(Total)>8)
+data_subset = group_by(data, Herd, monthnum) %>% filter(sum(Total)>8) %>% 
+  ungroup(Herd) %>% summarise(pos = sum(Positives), Total = sum(Total), Prevalence = pos/Total)
+  
 
-ggplot(data_subset,aes(monthnum,Prevalence))+geom_point(aes(color=Herd))
+ggplot(data,aes(monthnum,Prevalence))+geom_point(aes(color=Herd, size=Total))
 
 
 params = list()
-params$gamma = 0.1   # Let's see if we can fit with this simple value
+params$gamma = 0.3   # Let's see if we can fit with this simple value
 # R0=beta/gamma, so beta=R0*gamma
-params$beta = 1
+params$beta = 3
 params$pop = 0.2 # density of caribou
 
 ## Fit using a genetic algorithm
@@ -94,21 +96,25 @@ GA = ga(
   optimArgs = list(method = "CG"),
   suggestions = c(params$beta, params$gamma),
   popSize = 500,
-  maxiter = 150
+  maxiter = 100
 )
 
 params$beta = GA@solution[1]
 params$gamma = GA@solution[2]
 S0 = 0.2
-I0 = S0*data_subset[[which_incidence]][1]/100
+I0 = S0*data_subset[[which_incidence]][1]
 IC = c(S = S0, I = I0, R = 0)
 dates_num = data_subset$monthnum
 times = seq(dates_num[1], dates_num[length(dates_num)], 0.1)
 sol <- ode(IC, times, RHS_KMK_SIR, params)
 sol_incidence =  sol[,"I"]/(sol[,"S"]+sol[,"I"]+sol[,"R"])
-y_max = max(max(sol_incidence), max(data_subset[[which_incidence]]/100))
+y_max = max(max(sol_incidence), max(data_subset[[which_incidence]]))
 
 plot(sol[,"time"], sol_incidence, type = "l",
      xlab = "Month", ylab = "Prevalence", lwd = 2, col = "red",
      ylim = c(0, y_max))
-points(data_subset$monthnum, data_subset[[which_incidence]]/100)
+points(data_subset$monthnum, data_subset[[which_incidence]])
+
+#' When we aggregate the herds and years together, this produces beta
+#' estimates of 2.99/individual/month, and recovery rates, 0.226/month.
+#' This translates to beta = 35.9 /ind/y and gamma = 2.72 /y

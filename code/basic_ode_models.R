@@ -77,4 +77,15 @@ odeseas <- function(t, state, parameters) {
     list(c(dSj,dIj,dRj,dSa,dIa,dRa,dD))
   })
 }
+
+odeagg <- function(t, state, parameters) {
+  with(as.list(c(state, parameters)), {
+    dS <- phi*(S+R)+sigma*phi*I-mu_N*S-k*S*log(1+beta*(I+D)/k)+lambda*R
+    dI <- -mu_N*I+k*S*log(1+beta*(I+D)/k)-theta*mu_I*I-(1-theta)*rho*I
+    dR <- -mu_N*R+(1-theta)*rho*I-lambda*R
+    dD <- theta*mu_I*I-delta*D
+    
+    list(c(dS,dI,dR,dD))
+  })
+}
                 
