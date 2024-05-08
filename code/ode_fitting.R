@@ -48,12 +48,11 @@ error_incidence <- function(p_vary,
   if (sol[dim(sol)[1],"time"] < times[length(times)]) {
     return(Inf)
   }
-  # Values required to compute the error
-  incidence_from_run = sol[,"I"]/(sol[,"S"]+sol[,"I"]+sol[,"R"])
   # Compute the error
   matchdb = sol[match(incidence_data$monthnum, sol[,"time"]),]
-  diff_values =   matchdb[,"I"]/(matchdb[,"S"]+matchdb[,"I"]+matchdb[,"R"])-incidence_data[,which_incidence]/100
-#incidence_data[[which_incidence]]/100 - incidence_from_run
+  # calculate the difference between observed and model predicted. This
+  # difference is weighted by the inverse of the number of samples
+  diff_values =   1/incidence_data$Total*(matchdb[,"I"]/(matchdb[,"S"]+matchdb[,"I"]+matchdb[,"R"])-incidence_data[,which_incidence]/100)
   diff_values_squared = diff_values^2
   error = sum(diff_values_squared)
   return(error)
