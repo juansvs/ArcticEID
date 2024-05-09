@@ -87,7 +87,7 @@ For the first model, the non-trivial equilibrium satisfies:
 $$ 
 \hat{D}=\frac{\theta  \mu_I (\rho -\theta  \rho ) (\lambda +\mu_N) (\mu_N-\phi ) (-\theta  (\mu_I+\rho )-\rho +\mu_N)}{\beta  (1-\theta ) \rho  ((\rho -\theta  \rho ) (\lambda +\phi ) (\delta +\theta  \mu_I)+\phi  (\rho -\theta  \rho ) (\lambda +\mu_N) (\delta +\theta  \mu_I)+(\lambda +\mu_N) (\delta -\theta  \mu_I) (\theta  (\mu_I-\rho )+\rho +\mu_N))}\\ 
 \hat{I} =\frac{\delta  (\rho -\theta  \rho ) (\lambda +\mu_N) (\mu_N-\phi ) (-\theta  (\mu_I+\rho )-\rho +\mu_N)}{\beta  (1-\theta ) \rho  ((\rho -\theta  \rho ) (\lambda +\phi ) (\delta +\theta  \mu_I)+\phi  (\rho -\theta  \rho ) (\lambda +\mu_N) (\delta +\theta  \mu_I)+(\lambda +\mu_N) (\delta -\theta  \mu_I) (\theta  (\mu_I-\rho )+\rho +\mu_N))}\\
- \hat{S}=\frac{\delta(\mu_N-\theta\mu_I-\rho+\rho\theta)}{\beta(\delta+\theta\mu_I)}\\ 
+\hat{S}=\frac{\delta(\mu_N+\theta\mu_I+\rho-\rho\theta)}{\beta(\delta+\theta\mu_I)}\\ 
 \hat{R}=\frac{\delta(\mu_N-\theta\mu_I-\rho+\rho\theta)(\mu_N-\phi)(\rho-\rho\theta)}{\beta[(-\mu_N-\theta\mu_I-\rho+\rho\theta)(\mu_N+\lambda)(\theta\mu_I-\delta)+(\rho-\rho\theta)(\delta+\theta\mu_I)(\phi+\lambda)+(\rho-\rho\theta)(\delta+\mu_I\theta)(\mu_N+\lambda)\phi]} 
 $$
 
@@ -110,7 +110,27 @@ $$
 \right)
 $$
 
-At the disease-free equilibrium, we have $\hat I=0$ and $\hat D=0$.
+At the disease-free equilibrium, we have
+
+$$
+\hat S=\frac{\delta(\mu_N+\theta\mu_I+\rho-\rho\theta)}{\beta(\delta+\theta\mu_I)}\\
+\hat I=0\\
+\hat R=0\\
+\hat D=0
+$$
+
+so the matrix becomes
+
+$$
+\left(
+\begin{matrix}
+\phi-\mu_N& \phi-\beta \frac{\delta(\mu_N+\theta\mu_I+\rho-\rho\theta)}{\beta(\delta+\theta\mu_I)} & \phi+\lambda & -\beta \frac{\delta(\mu_N+\theta\mu_I+\rho-\rho\theta)}{\beta(\delta+\theta\mu_I)}\\
+0 & -\mu_N-\theta \mu_I-\rho-\theta\rho+\beta \frac{\delta(\mu_N+\theta\mu_I+\rho-\rho\theta)}{\beta(\delta+\theta\mu_I)}& 0 & \beta \frac{\delta(\mu_N+\theta\mu_I+\rho-\rho\theta)}{\beta(\delta+\theta\mu_I)}\\
+0 & \rho-\theta\rho & -\mu_N-\lambda & 0\\
+0 & \theta \mu_I & 0 & -\delta
+\end{matrix}
+\right)
+$$
 
 ### Maternal immunity
 
