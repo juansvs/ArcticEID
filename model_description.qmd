@@ -7,9 +7,11 @@ bibliography: references.bib
 
 To get a better understanding of how bacterial diseases are spreading across populations of ungulates in the Canadian Arctic, and how they may be impacting these populations, we built a series of epidemiological models. These models represent the demographics and disease transmission processes for two bacteria of interest: *Erysipelothrix rhusiopatiae* (Er) and *Brucella suis* (Bs). Er has caused mass mortality events, which have been documented since 2011. Bs in turn causes abortions, reducing mean fecundity in the population. Given low population growth rates in musk oxen in particular, reductions in fecundity could have significant detrimental impact on these populations.
 
+# Erysipelothrix rhusiopatiae
+
 ## Deterministic model
 
-First, we build deterministic models that use a system of ordinary differential equations (ODE). These models follow a SIR(D) structure (D for carcasses on the landscape). The models include demographic—fecundity, natural mortality—and epidemiological processes—acquisition, disease mortality. The diagram below shows a schematic representation of this model applied to *Er* in musk oxen. In this model, susceptible individuals (S) become infected with the bacterium (I) following contact with contaminated carcasses (D), or with infected individuals. Once infected, individuals can either become resistant (R), or develop a pathology and die.
+First, we build deterministic models that use a system of ordinary differential equations (ODE). These models follow a SIR(D) structure (D for carcasses on the landscape). The models include demographic—fecundity, natural mortality—and epidemiological processes—acquisition, disease mortality. The diagram below shows a schematic representation of this model applied to *E. rhusiopatiae* in musk oxen. In this model, susceptible individuals (S) become infected with bacteria (I) following contact with contaminated carcasses (D), or with infected individuals. Once infected, individuals can either become resistant (R), or develop a pathology and die.
 
 ::: {#sirdiagram}
 ![Representation of the basic SIRD model for epidemiology of *Erysipelothrix rhusiopatiae* in musk oxen](images/SIR_diagram.png){width="400"}
@@ -29,7 +31,7 @@ $$
 Parameters are as follows:
 
 | Parameter | Description                                                                                                | Value  | Units                 |
-|--------------|-------------------------------|--------------|--------------|
+|-------------|-----------------------------------|-------------|-------------|
 | $\phi$    | *Per capita* fecundity rate. Assumed at first to be equal regardless of disease                            | 0.61   | 1/year                |
 | $\mu_N$   | *Per capita* natural mortality rate                                                                        | 1/12   | 1/year                |
 | $\beta$   | Bacteria transmission rate. Calculated as a search efficiency rate that scales the number of encounters    | 5      | km\^2/individual year |
@@ -41,7 +43,7 @@ Parameters are as follows:
 
 : Description of parameters in the Er-musk ox compartmental epidemiological model
 
-```{r, echo=FALSE,fig.asp=3/4, fig.cap="Epidemiological model of E.rhus. in musk oxen"}
+```{r, echo=FALSE,fig.asp=3/4, fig.cap="Epidemiological model of E.rhusiopatiae in musk oxen"}
 
 source("code/basic_ode_models.R")
 library(deSolve)
@@ -51,7 +53,7 @@ pars <- c(
   sigma = 1, # proportion of fecundity of disease individuals, relative to healthy ones
   lambda = 1, # loss of immunity in one year
   beta = 5, # transmission. wild guess at this point. Units are km^2/ind/yr
-  mu_N = 1/12, # based on 15 year lifespan (12-20 yr)
+  mu_N = 1/6.7, # based on 15 year lifespan (12-20 yr). With this rate, only 5% of individuals reach 20 years, and only 10% reach 15 years.
   mu_I = 365/5, # disease-induced mortality rate
   theta = 0.8, # proportion of individuals that develop a pathology and die
   rho = 365/15, # rate of recovery
@@ -61,7 +63,7 @@ pars <- c(
 # State variables, densities of individuals per km^-2
 state <- c(
   S = 0.3,
-  I = 0.01,
+  I = 0.3*0.1,
   R = 0,
   D = 0
 )
@@ -77,6 +79,38 @@ matplot.deSolve(out,
                 main="", ylab = expression(paste("Density (",km^-2,")")), xlab = "Time (years)", lty = 1, 
                 col = hcl.colors(4),cex.lab=1.5)
 ```
+
+### Model equilibria and stability
+
+For the first model, the non-trivial equilibrium satisfies:
+
+$$ 
+\hat{D}=\frac{\theta  \mu_I (\rho -\theta  \rho ) (\lambda +\mu_N) (\mu_N-\phi ) (-\theta  (\mu_I+\rho )-\rho +\mu_N)}{\beta  (1-\theta ) \rho  ((\rho -\theta  \rho ) (\lambda +\phi ) (\delta +\theta  \mu_I)+\phi  (\rho -\theta  \rho ) (\lambda +\mu_N) (\delta +\theta  \mu_I)+(\lambda +\mu_N) (\delta -\theta  \mu_I) (\theta  (\mu_I-\rho )+\rho +\mu_N))}\\ 
+\hat{I} =\frac{\delta  (\rho -\theta  \rho ) (\lambda +\mu_N) (\mu_N-\phi ) (-\theta  (\mu_I+\rho )-\rho +\mu_N)}{\beta  (1-\theta ) \rho  ((\rho -\theta  \rho ) (\lambda +\phi ) (\delta +\theta  \mu_I)+\phi  (\rho -\theta  \rho ) (\lambda +\mu_N) (\delta +\theta  \mu_I)+(\lambda +\mu_N) (\delta -\theta  \mu_I) (\theta  (\mu_I-\rho )+\rho +\mu_N))}\\
+ \hat{S}=\frac{\delta(\mu_N-\theta\mu_I-\rho+\rho\theta)}{\beta(\delta+\theta\mu_I)}\\ 
+\hat{R}=\frac{\delta(\mu_N-\theta\mu_I-\rho+\rho\theta)(\mu_N-\phi)(\rho-\rho\theta)}{\beta[(-\mu_N-\theta\mu_I-\rho+\rho\theta)(\mu_N+\lambda)(\theta\mu_I-\delta)+(\rho-\rho\theta)(\delta+\theta\mu_I)(\phi+\lambda)+(\rho-\rho\theta)(\delta+\mu_I\theta)(\mu_N+\lambda)\phi]} 
+$$
+
+While it may be unrealistic to expect the system to reach equilibrium, we can use the model to infer the expected density of individuals who are temporarily immune, *i.e.* who had the disease and recovered. This would be represented by seropositive alive individuals.
+
+Also, we can analyze the stability of the disease-free equilibrium, to determine the conditions that lead to spread of the parasite.
+
+#### Stability of disease-free equilibrium
+
+We use the linearization procedure described in [@otto2007] to determine the stability of existing equilibria for the model. The linearized matrix is:
+
+$$
+\left(
+\begin{matrix}
+\phi-\mu_N-\beta\hat I-\beta\hat D & \phi-\beta \hat S & \phi+\lambda & -\beta \hat S\\
+\beta \hat I+\beta \hat D & -\mu_N-\theta \mu_I-\rho-\theta\rho+\beta \hat S& 0 & \beta \hat S\\
+0 & \rho-\theta\rho & -\mu_N-\lambda & 0\\
+0 & \theta \mu_I & 0 & -\delta
+\end{matrix}
+\right)
+$$
+
+At the disease-free equilibrium, we have $\hat I=0$ and $\hat D=0$.
 
 ### Maternal immunity
 
@@ -128,12 +162,12 @@ pars_ss <- c(
   phi = 0.61, # fecundity of healthy individuals
   sigma = 1, # proportion of fecundity of disease individuals, relative to healthy ones
   lambda = 1, # loss of immunity per year
-  beta = 5, # transmission. wild guess at this point. Units are km^2/ind/yr
+  beta = 35.9, # transmission. wild guess at this point. Units are km^2/ind/yr
   mu_J = 0.3, # juvenile mortality rate
   mu_N = 1/12, # adult mortality, based on 15 year lifespan (12-20 yr)
   mu_I = 365/5, # disease-induced mortality rate
   theta = 0.8, # proportion of individuals that develop a pathology and die
-  rho = 365/15, # rate of recovery
+  rho = 2.72, # rate of recovery
   delta = 1/2, # carcass disappearance rate
   gama = 1 # development rate 
 )
@@ -160,12 +194,12 @@ pars_ss <- c(
   phi = 0.61, # fecundity of healthy individuals
   sigma = 1, # proportion of fecundity of disease individuals, relative to healthy ones
   lambda = 1, # loss of immunity per year
-  beta = 5, # transmission. wild guess at this point. Units are km^2/ind/yr
+  beta = 35.9, # transmission. wild guess at this point. Units are km^2/ind/yr
   mu_J = 0.3, # juvenile mortality rate
   mu_N = 1/12, # adult mortality, based on 15 year lifespan (12-20 yr)
   mu_I = 365/5, # disease-induced mortality rate
   theta = 0.8, # proportion of individuals that develop a pathology and die
-  rho = 365/15, # rate of recovery
+  rho = 2.72, # rate of recovery
   delta = 1/2, # carcass disappearance rate
   gama = 1 # development rate 
 )
@@ -181,23 +215,37 @@ matplot.deSolve(out,
                 col = hcl.colors(7),cex.lab=1.5)
 ```
 
-#### Model equilibria
+```{r}
+pars_ss <- c(
+  phi = 0.61, # fecundity of healthy individuals
+  sigma = 1, # proportion of fecundity of disease individuals, relative to healthy ones
+  lambda = 1, # loss of immunity per year
+  beta = 5, # transmission. wild guess at this point. Units are km^2/ind/yr
+  mu_J = 0.3, # juvenile mortality rate
+  mu_N = 1/12, # adult mortality, based on 15 year lifespan (12-20 yr)
+  mu_I = 365/5, # disease-induced mortality rate
+  theta = 0.8, # proportion of individuals that develop a pathology and die
+  rho = 365/15, # rate of recovery
+  delta = 1/2, # carcass disappearance rate
+  gama = 1, # development rate 
+  k=0.5
+)
+# solve numerically
+out <- ode(y = c(Sj = 0.3*0.17, Ij = 0, Rj = 0,
+                 Sa = 0.3*0.83, Ia = 0.01, Ra = 0,
+                 D = 0), 
+           times = times, func = odeagg, parms = pars_ss)
 
-For the first model, the non-trivial equilibrium satisfies:
-
-$$
-\begin{align}
-\hat{D}=\frac{\theta  \mu_I (\rho -\theta  \rho ) (\lambda +\mu_N) (\mu_N-\phi ) (-\theta  (\mu_I+\rho )-\rho +\mu_N)}{\beta  (1-\theta ) \rho  ((\rho -\theta  \rho ) (\lambda +\phi ) (\delta +\theta  \mu_I)+\phi  (\rho -\theta  \rho ) (\lambda +\mu_N) (\delta +\theta  \mu_I)+(\lambda +\mu_N) (\delta -\theta  \mu_I) (\theta  (\mu_I-\rho )+\rho +\mu_N))}\\
-\hat{I} =\frac{\delta  (\rho -\theta  \rho ) (\lambda +\mu_N) (\mu_N-\phi ) (-\theta  (\mu_I+\rho )-\rho +\mu_N)}{\beta  (1-\theta ) \rho  ((\rho -\theta  \rho ) (\lambda +\phi ) (\delta +\theta  \mu_I)+\phi  (\rho -\theta  \rho ) (\lambda +\mu_N) (\delta +\theta  \mu_I)+(\lambda +\mu_N) (\delta -\theta  \mu_I) (\theta  (\mu_I-\rho )+\rho +\mu_N))}\\
-\hat{S}=\frac{\delta(\mu_N-\theta\mu_I-\rho+\rho\theta)}{\beta(\delta+\theta\mu_I)}\\
-\hat{R}=\frac{\delta(\mu_N-\theta\mu_I-\rho+\rho\theta)(\mu_N-\phi)(\rho-\rho\theta)}{\beta[(-\mu_N-\theta\mu_I-\rho+\rho\theta)(\mu_N+\lambda)(\theta\mu_I-\delta)+(\rho-\rho\theta)(\delta+\theta\mu_I)(\phi+\lambda)+(\rho-\rho\theta)(\delta+\mu_I\theta)(\mu_N+\lambda)\phi]}
-\end{align}
-$$
-
-While it may be unrealistic to expect the system to reach equilibrium any time soon, we can use the model to infer the expected density of individuals who are temporarily immune, *i.e.* who had the disease and recovered. This would be represented by seropositive alive individuals.
+# plot
+matplot.deSolve(out, 
+                main="", ylab = expression(paste("Density (",km^-2,")")), xlab = "Time (years)", lty = 1, 
+                col = hcl.colors(7),cex.lab=1.5)
+```
 
 ## Discrete model
 
 ## Stochastic model
+
+# Brucella suis
 
 ## References
