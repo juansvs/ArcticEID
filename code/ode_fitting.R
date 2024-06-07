@@ -1,5 +1,8 @@
 #' Code taken from J. Arino's github, for fitting the solution to a 
 #' ODE of an epidemiological model to actual data. 
+#' 
+
+setwd("code")
 
 library(lubridate)
 library(tidyverse)
@@ -39,7 +42,7 @@ error_incidence <- function(p_vary,
   # incidence=beta*S*I/N, we have
   # I(0) = incidence*N/(beta*S(0)) ~= incidence/beta
   S0 = params$pop
-  I0 = S0*data_subset[[which_incidence]][1]
+  I0 = S0*0.1#data_subset[[which_incidence]][1]
   IC = c(S = S0, I = I0, R = 0)
   # The times at which we compute the solution to compare with data
   times = incidence_data$monthnum
@@ -66,15 +69,15 @@ head(data)
 # Type of incidence to use (column name in the data)
 which_incidence = "Prevalence"
 
-data_subset = group_by(data, Herd, monthnum) %>% filter(sum(Total)>8) %>% 
-  ungroup(Herd) %>% summarise(pos = sum(Positives), Total = sum(Total), Prevalence = pos/Total)
-  
-
 ggplot(data,aes(monthnum,Prevalence))+geom_point(aes(color=Herd, size=Total))
+
+data_subset = group_by(data, Herd, monthnum) %>% filter(sum(Total)>8) %>% 
+  # ungroup(Herd) %>% 
+  summarise(pos = sum(Positives), Total = sum(Total), Prevalence = pos/Total)
 
 
 params = list()
-params$gamma = 0.3   # Let's see if we can fit with this simple value
+params$gamma = 0.5   # Let's see if we can fit with this simple value
 # R0=beta/gamma, so beta=R0*gamma
 params$beta = 3
 params$pop = 0.2 # density of caribou
@@ -88,8 +91,8 @@ GA = ga(
                                          which_incidence = "Prevalence",
                                          method = "rk4"),
   parallel = 4,
-  lower = c(0.5, 0.05),
-  upper = c(5, 2),
+  lower = c(0, 0),
+  upper = c(5, 5),
   pcrossover = 0.7,
   pmutation = 0.2,
   optim = TRUE,
@@ -99,10 +102,11 @@ GA = ga(
   maxiter = 100
 )
 
+GA@solution
 params$beta = GA@solution[1]
 params$gamma = GA@solution[2]
 S0 = 0.2
-I0 = S0*data_subset[[which_incidence]][1]
+I0 = S0*0.1
 IC = c(S = S0, I = I0, R = 0)
 dates_num = data_subset$monthnum
 times = seq(dates_num[1], dates_num[length(dates_num)], 0.1)
@@ -115,6 +119,8 @@ plot(sol[,"time"], sol_incidence, type = "l",
      ylim = c(0, y_max))
 points(data_subset$monthnum, data_subset[[which_incidence]])
 
-#' When we aggregate the herds and years together, this produces beta
-#' estimates of 2.99/individual/month, and recovery rates, 0.226/month.
-#' This translates to beta = 35.9 /ind/y and gamma = 2.72 /y
+#' When we aggregate the herds and years together, this produces beta estimates
+#' of 3.37/individual/month, and recovery rates, 0.236/month. These would be
+#' transmission rates between individuals over the summer period when thermal
+#' stress is higher, and there is more exposed ground where there can be contact
+#' with contaminated soil.
