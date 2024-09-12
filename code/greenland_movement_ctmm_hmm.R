@@ -3,7 +3,7 @@ rm(list = ls())
 
 library(ctmm)
 library(sf)
-library(moveHMM)
+library(tidyverse)
 # import data
 DAT <- read.delim("data/muskox_tracking_data_summer_20200417.txt", colClasses = c(datetime = "POSIXct"))
 # select columns to create telemetry object, rename them
@@ -37,5 +37,10 @@ saveRDS(UD, "outputs/greenland_UDs.rds")
 # Hidden Markov Model to assess behavior. The goal is to assign behaviors
 # (resting, foraging, moving), and estimate the distance travelled on average
 # when foraging. We assume that transmission occurs when ingesting contaminated
-# soil, so is likely during foraging bouts.
+# soil, so is likely during foraging bouts. The HMMs are in Beumer et al. 2020.
+# (https://doi.org/10.1186/s40462-020-00213-x)
 # 
+summarise(DAT, totdist = sum(step),n=n(),
+          .by = c(burst_id,julian,viterbi)) %>% 
+  mutate(dist_day = totdist*24/sum(n), .by = c(burst_id, julian)) %>% 
+  summarise(ddistmean = mean(dist_day, na.rm=T), ddist_sd = sd(dist_day, na.rm=T), .by = viterbi)
